@@ -1,0 +1,40 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "solana",
+    "Solana",
+    "SOLANA",
+    "borsh",
+    "Borsh",
+    "BORSH",
+    "pubkey",
+    "Pubkey",
+    "PUBKEY",
+    "Devnet",
+    "devnet",
+    "DEVNET",
+    "Phantom",
+    "phantom",
+    "PHANTOM",
+    "lamports",
+    "Lamports",
+    "LAMPORTS",
+    "keypair",
+    "Keypair",
+    "KEYPAIR",
+    "isWritable",
+    "isSigner",
+    "programId",
+    "toBase58",
+    "revokeertificate",
+    "issuecertificate",
+    "verifycertificate"
+  ],
+  "ignoreWords": [
+    "solana",
+    "borsh",
+    "pubkey",
+    "Phantom"
+  ]
+}

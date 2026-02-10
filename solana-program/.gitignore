@@ -1,0 +1,20 @@
+# Solana program build artifacts
+/target/
+**/*.rs.bk
+*.so
+
+# Keypairs (NEVER commit these!)
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!.eslintrc.json
+
+# Anchor
+.anchor
+test-ledger/
+.DS_Store
+
+# IDL
+*.ts
+!*.d.ts
