@@ -18,6 +18,7 @@ export interface IssueResponse {
   certificateAddress: string;
   certificate: CertificateData;
   message: string;
+  error?: string;
 }
 
 export interface VerifyResponse {
@@ -25,6 +26,7 @@ export interface VerifyResponse {
   certificate: CertificateData;
   isValid: boolean;
   message: string;
+  error?: string;
 }
 
 export interface RevokeResponse {
@@ -32,6 +34,7 @@ export interface RevokeResponse {
   signature: string;
   message: string;
   certificate: CertificateData;
+  error?: string;
 }
 
 export interface HealthResponse {
