@@ -1,9 +1,17 @@
 "use client";
 
-import { FC, useState } from "react";
+import { FC, useState, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import toast from "react-hot-toast";
 import { BACKEND_URL, IssueResponse, copyToClipboard } from "@/lib/constants";
+
+function generateUniqueCertificateId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `CERT-${timestamp}-${randomPart}`.toUpperCase();
+}
 
 const IssueCertificate: FC = () => {
   const { publicKey } = useWallet();
@@ -12,9 +20,13 @@ const IssueCertificate: FC = () => {
   const [formData, setFormData] = useState({
     studentName: "",
     courseName: "",
-    certificateId: "",
+    certificateId: generateUniqueCertificateId(),
     grade: "",
   });
+
+  const regenerateId = useCallback(() => {
+    setFormData((prev) => ({ ...prev, certificateId: generateUniqueCertificateId() }));
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,7 +68,7 @@ const IssueCertificate: FC = () => {
       if (issueData.success) {
         setResult(issueData);
         toast.success("Certificate issued successfully!");
-        setFormData({ studentName: "", courseName: "", certificateId: "", grade: "" });
+        setFormData({ studentName: "", courseName: "", certificateId: generateUniqueCertificateId(), grade: "" });
       } else {
         toast.error(data.error || "Failed to issue certificate");
       }
@@ -107,15 +119,24 @@ const IssueCertificate: FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Certificate ID <span className="text-red-400">*</span></label>
-            <input
-              type="text"
-              name="certificateId"
-              value={formData.certificateId}
-              onChange={handleChange}
-              placeholder="Enter unique certificate ID"
-              className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
-            />
+            <label className="block text-sm text-gray-400 mb-1">Certificate ID <span className="text-green-400">(auto-generated)</span></label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                name="certificateId"
+                value={formData.certificateId}
+                readOnly
+                className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-yellow-300 font-mono text-sm focus:outline-none cursor-default"
+              />
+              <button
+                type="button"
+                onClick={regenerateId}
+                title="Generate new ID"
+                className="shrink-0 bg-gray-700 hover:bg-gray-600 text-white px-3 rounded-lg transition-colors"
+              >
+                &#x21bb;
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Grade <span className="text-red-400">*</span></label>
