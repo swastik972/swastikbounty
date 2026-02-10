@@ -3,13 +3,12 @@
 import { FC, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import toast from "react-hot-toast";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+import { BACKEND_URL, IssueResponse, copyToClipboard } from "@/lib/constants";
 
 const IssueCertificate: FC = () => {
   const { publicKey } = useWallet();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<IssueResponse | null>(null);
   const [formData, setFormData] = useState({
     studentName: "",
     courseName: "",
@@ -49,68 +48,82 @@ const IssueCertificate: FC = () => {
 
       const data = await response.json();
 
-      if (data.success) {
-        setResult(data);
+      if (!response.ok) {
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
+
+      const issueData = data as IssueResponse;
+      if (issueData.success) {
+        setResult(issueData);
         toast.success("Certificate issued successfully!");
         setFormData({ studentName: "", courseName: "", certificateId: "", grade: "" });
       } else {
         toast.error(data.error || "Failed to issue certificate");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error issuing certificate:", error);
-      toast.error("Failed to connect to backend. Is the server running?");
+      toast.error(error.message || "Failed to connect to backend. Is the server running?");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCopy = async (text: string, label: string) => {
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success(`${label} copied!`);
+  };
+
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Issue New Certificate</h2>
+      <h2 className="text-xl font-semibold mb-1">Issue New Certificate</h2>
+      <p className="text-gray-500 text-sm mb-5">
+        Fill in the details below to issue a new blockchain-verified certificate.
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Student Name</label>
-          <input
-            type="text"
-            name="studentName"
-            value={formData.studentName}
-            onChange={handleChange}
-            placeholder="Enter student name"
-            className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Student Name <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              name="studentName"
+              value={formData.studentName}
+              onChange={handleChange}
+              placeholder="Enter student name"
+              className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Course Name <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              name="courseName"
+              value={formData.courseName}
+              onChange={handleChange}
+              placeholder="Enter course name"
+              className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+            />
+          </div>
         </div>
-
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Course Name</label>
-          <input
-            type="text"
-            name="courseName"
-            value={formData.courseName}
-            onChange={handleChange}
-            placeholder="Enter course name"
-            className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Certificate ID</label>
-          <input
-            type="text"
-            name="certificateId"
-            value={formData.certificateId}
-            onChange={handleChange}
-            placeholder="Enter unique certificate ID"
-            className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Grade</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Certificate ID <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              name="certificateId"
+              value={formData.certificateId}
+              onChange={handleChange}
+              placeholder="Enter unique certificate ID"
+              className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Grade <span className="text-red-400">*</span></label>
           <select
             name="grade"
             value={formData.grade}
             onChange={handleChange}
+            title="Select grade"
             className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors"
           >
             <option value="">Select grade</option>
@@ -123,12 +136,13 @@ const IssueCertificate: FC = () => {
             <option value="D">D</option>
             <option value="F">F</option>
           </select>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors duration-200"
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-purple-800 disabled:to-blue-800 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg shadow-purple-600/20"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -145,20 +159,29 @@ const IssueCertificate: FC = () => {
       </form>
 
       {result && (
-        <div className="mt-6 p-4 bg-green-900/20 border border-green-700/50 rounded-lg">
-          <h3 className="text-green-400 font-semibold mb-2">Certificate Issued Successfully!</h3>
-          <div className="space-y-1 text-sm">
-            <p>
-              <span className="text-gray-400">Certificate Address:</span>{" "}
-              <code className="text-yellow-300 break-all">{result.certificateAddress}</code>
-            </p>
-            <p>
-              <span className="text-gray-400">Transaction Signature:</span>{" "}
-              <code className="text-blue-300 break-all">{result.signature}</code>
-            </p>
+        <div className="mt-6 p-5 bg-green-900/20 border border-green-700/50 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-2xl">&#x2705;</span>
+            <h3 className="text-green-400 font-semibold">Certificate Issued Successfully!</h3>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Save the Certificate Address to verify or revoke later.
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start justify-between gap-2 p-3 bg-gray-900/50 rounded-lg">
+              <div className="min-w-0">
+                <span className="text-gray-400 text-xs">Certificate Address</span>
+                <p className="text-yellow-300 break-all font-mono text-xs mt-0.5">{result.certificateAddress}</p>
+              </div>
+              <button onClick={() => handleCopy(result.certificateAddress, "Address")} className="shrink-0 text-gray-400 hover:text-white p-1.5 rounded hover:bg-gray-700 transition-colors" title="Copy address">&#128203;</button>
+            </div>
+            <div className="flex items-start justify-between gap-2 p-3 bg-gray-900/50 rounded-lg">
+              <div className="min-w-0">
+                <span className="text-gray-400 text-xs">Transaction Signature</span>
+                <p className="text-blue-300 break-all font-mono text-xs mt-0.5">{result.signature}</p>
+              </div>
+              <button onClick={() => handleCopy(result.signature, "Signature")} className="shrink-0 text-gray-400 hover:text-white p-1.5 rounded hover:bg-gray-700 transition-colors" title="Copy signature">&#128203;</button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            Save the Certificate Address &mdash; you&apos;ll need it to verify or revoke this certificate.
           </p>
         </div>
       )}

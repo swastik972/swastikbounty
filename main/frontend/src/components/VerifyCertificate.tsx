@@ -2,19 +2,13 @@
 
 import { FC, useState } from "react";
 import toast from "react-hot-toast";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
-
-interface CertificateData {
-  studentName: string;
-  courseName: string;
-  certificateId: string;
-  grade: string;
-  issuerAddress: string;
-  issueDate: number;
-  isRevoked: boolean;
-  certificateAddress: string;
-}
+import {
+  BACKEND_URL,
+  CertificateData,
+  copyToClipboard,
+  formatDate,
+  truncateAddress,
+} from "@/lib/constants";
 
 const VerifyCertificate: FC = () => {
   const [address, setAddress] = useState("");
@@ -40,6 +34,11 @@ const VerifyCertificate: FC = () => {
       );
       const data = await response.json();
 
+      if (!response.ok) {
+        toast.error(data.error || "Certificate not found");
+        return;
+      }
+
       if (data.success) {
         setCertificate(data.certificate);
         setIsValid(data.isValid);
@@ -59,31 +58,29 @@ const VerifyCertificate: FC = () => {
     }
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const handleCopy = async (text: string, label: string) => {
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success(`${label} copied!`);
   };
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Verify Certificate</h2>
+      <h2 className="text-xl font-semibold mb-1">Verify Certificate</h2>
+      <p className="text-gray-500 text-sm mb-5">
+        Enter a certificate address to check its authenticity and status.
+      </p>
 
       <form onSubmit={handleVerify} className="space-y-4">
         <div>
           <label className="block text-sm text-gray-400 mb-1">
-            Certificate Address
+            Certificate Address <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Enter certificate account address"
-            className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+            className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
           />
         </div>
 
@@ -160,11 +157,14 @@ const VerifyCertificate: FC = () => {
                 </p>
               </div>
             </div>
-            <div>
-              <span className="text-gray-400">Issuer Address:</span>
-              <p className="text-yellow-300 break-all text-xs mt-1">
-                {certificate.issuerAddress}
-              </p>
+            <div className="flex items-start justify-between gap-2 p-2 bg-gray-900/30 rounded">
+              <div className="min-w-0">
+                <span className="text-gray-400">Issuer Address:</span>
+                <p className="text-yellow-300 break-all text-xs mt-1 font-mono">
+                  {certificate.issuerAddress}
+                </p>
+              </div>
+              <button onClick={() => handleCopy(certificate.issuerAddress, "Address")} className="shrink-0 text-gray-400 hover:text-white p-1 rounded hover:bg-gray-700 transition-colors" title="Copy address">&#128203;</button>
             </div>
           </div>
         </div>

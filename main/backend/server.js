@@ -14,14 +14,6 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 
-// Error handling middleware for JSON parse errors
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    return res.status(400).json({ error: "Invalid JSON in request body" });
-  }
-  next();
-});
-
 // Logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -148,18 +140,14 @@ app.get("/api/certificate/verify/:address", (req, res) => {
       return res.status(404).json({ error: "Certificate not found" });
     }
 
-    if (certificate.isRevoked) {
-      return res.json({
-        valid: false,
-        certificate,
-        message: "Certificate has been revoked",
-      });
-    }
+    const isValid = !certificate.isRevoked;
 
     res.json({
-      valid: true,
+      success: true,
+      valid: isValid,
+      isValid,
       certificate,
-      message: "Certificate is valid",
+      message: isValid ? "Certificate is valid" : "Certificate has been revoked",
     });
   } catch (error) {
     console.error("Error verifying certificate:", error);
@@ -184,7 +172,25 @@ app.get("/api/certificates", (req, res) => {
 
 // Health Check Endpoint
 app.get("/api/health", (req, res) => {
-  res.json({ status: "Backend API is running", timestamp: new Date() });
+  res.json({
+    status: "Backend API is running",
+    timestamp: new Date(),
+    certificateCount: certificates.size,
+  });
+});
+
+// 404 handler for unknown routes
+app.use((req, res) => {
+  res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+});
+
+// Error handling middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({ error: "Invalid JSON in request body" });
+  }
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 // Start server
